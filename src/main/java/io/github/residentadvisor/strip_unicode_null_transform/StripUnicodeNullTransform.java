@@ -44,7 +44,7 @@ public class StripUnicodeNullTransform<R extends ConnectRecord<R>> implements Tr
             Object value = struct.get(field);
             if (value instanceof String) {
                 String strValue = (String) value;
-                newStruct.put(field, strValue.replace("\u0000", ""));
+                newStruct.put(field, strValue.replace("\\u0000", "").replace("\u0000", ""));
             } else {
                 newStruct.put(field, value);
             }
