@@ -104,4 +104,47 @@ public class StripUnicodeNullTransformTest {
                         assertEquals(expectedValue, output.value());
                 }
         }
+
+        @Test
+        public void testTransformWithNullAfterStruct() {
+                try (StripUnicodeNullTransform<SinkRecord> transform = new StripUnicodeNullTransform<>()) {
+                        // Arrange
+                        transform.configure(new HashMap<String, String>());
+
+                        Schema messageSchema = SchemaBuilder.struct()
+                                .field("field1", Schema.STRING_SCHEMA)
+                                .field("field2", Schema.STRING_SCHEMA)
+                                .build();
+
+                        Schema optionalMessageSchema = SchemaBuilder.struct().optional()
+                                .field("field1", Schema.STRING_SCHEMA)
+                                .field("field2", Schema.STRING_SCHEMA)
+                                .build();
+
+                        Schema schema = SchemaBuilder.struct()
+                                .field("before", messageSchema)
+                                .field("after", optionalMessageSchema)
+                                .field("source", Schema.STRING_SCHEMA)
+                                .field("transaction", Schema.STRING_SCHEMA)
+                                .build();
+
+                        Struct inputValue = new Struct(schema)
+                                .put("before", new Struct(messageSchema)
+                                        .put("field1", "foo\u0000bar")
+                                        .put("field2", "baz"))
+                                .put("after", null)
+                                .put("source", "test")
+                                .put("transaction", "test");
+
+                        // Act
+                        SinkRecord output = transform.apply(new SinkRecord("", 0, null, null, schema, inputValue, 0));
+
+                        // Assert
+                        Struct outputValue = (Struct) output.value();
+                        assertNotNull(outputValue);
+                        assertNull(outputValue.get("after"));
+                        assertEquals("foo\u0000bar", ((Struct) outputValue.get("before")).get("field1"));
+                        assertEquals("baz", ((Struct) outputValue.get("before")).get("field2"));
+                }
+        }
 }

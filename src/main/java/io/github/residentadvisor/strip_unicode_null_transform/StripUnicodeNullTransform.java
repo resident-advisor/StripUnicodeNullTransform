@@ -21,9 +21,10 @@ public class StripUnicodeNullTransform<R extends ConnectRecord<R>> implements Tr
         for (Field field : struct.schema().fields()) {
             Object value = struct.get(field);
             if (field.name().equals("after")) {
-                Struct after = (Struct) value;
-                Struct newAfter = replaceNullBytes(after);
-                struct.put(field, newAfter);
+                if (value instanceof Struct) {
+                    Struct newAfter = replaceNullBytes((Struct) value);
+                    struct.put(field, newAfter);
+                }
             }
         }
 
@@ -38,6 +39,9 @@ public class StripUnicodeNullTransform<R extends ConnectRecord<R>> implements Tr
     }
     
     private Struct replaceNullBytes(Struct struct) {
+        if (struct == null) {
+            return null;
+        }
         Struct newStruct = new Struct(struct.schema());
         
         for (Field field : struct.schema().fields()) {
